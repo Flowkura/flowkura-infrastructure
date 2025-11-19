@@ -1,283 +1,205 @@
-# 🚀 Flowkura RAGFlow - Infrastructure Production
+# 🚀 Flowkura Infrastructure
 
-**Repository complet** pour déployer et maintenir l'infrastructure Flowkura.
+Infrastructure complète pour déployer RAGFlow avec Qwen3-8B et BGE-M3 sur GPU.
 
----
+## 📋 Prérequis
 
-## 🎯 QU'EST-CE QUE CE REPOSITORY ?
+- Docker et Docker Compose installés
+- GPU NVIDIA avec drivers installés
+- NVIDIA Container Toolkit configuré
+- Token Hugging Face (pour télécharger les modèles)
 
-Ce repository contient **TOUT** ce qui est nécessaire pour :
-- ✅ Réinstaller Flowkura depuis zéro
-- ✅ Maintenir l'infrastructure actuelle
-- ✅ Restaurer en cas de panne
-- ✅ Comprendre la configuration complète
+## 🛠️ Installation Rapide
 
-**Si je ne suis pas là demain**, quelqu'un peut tout refaire avec ce repo.
-
----
-
-## 📊 INFRASTRUCTURE ACTUELLE
-
-### Serveur
-- **IP** : 136.243.41.162
-- **OS** : Ubuntu Linux
-- **GPU** : NVIDIA RTX 4000 Ada (20GB VRAM)
-- **RAM** : 32GB
-- **URL** : https://ragflow.flowkura.com
-
-### Services déployés
-```
-┌─────────────────────────────────────────────────────┐
-│ STACK FLOWKURA                                      │
-├─────────────────────────────────────────────────────┤
-│ • RAGFlow (API + UI)         Port: 443 (HTTPS)     │
-│ • SGLang (Qwen3-8B)          Port: 8000            │
-│ • Ollama (embeddings)        Port: 11434           │
-│ • MySQL (optimisé 8GB)       Port: 5455            │
-│ • Redis (cache 4GB)          Port: 6379            │
-│ • Elasticsearch (8GB heap)   Port: 1200            │
-│ • MinIO (stockage)           Ports: 9000-9001      │
-└─────────────────────────────────────────────────────┘
-```
-
-### Optimisations appliquées
-- **Parsing** : 8 workers parallèles (800% plus rapide)
-- **Cache Redis** : 4GB (vs 128MB)
-- **MySQL** : 8GB buffer pool + IO optimisé
-- **Elasticsearch** : 8GB heap
-- **Upload** : 10GB max
-- **SSL/HTTPS** : Let's Encrypt avec auto-renew
-
----
-
-## 📁 STRUCTURE DU REPOSITORY
-
-```
-flowkura-infrastructure/
-├── README.md                           ← Ce fichier
-│
-├── ragflow-docker/                     ← CONFIGS DOCKER PRODUCTION
-│   ├── docker-compose-base.yml         ← MySQL, Redis, ES, MinIO
-│   ├── docker-compose.yml              ← RAGFlow principal
-│   └── .env.production                 ← Variables d'environnement
-│
-├── docker/                             ← CONFIG LLM
-│   └── docker-compose-llm.yml          ← SGLang + Ollama
-│
-├── nginx/                              ← CONFIG NGINX + SSL
-│   ├── nginx.conf
-│   ├── ragflow.conf
-│   ├── ragflow.https.conf              ← Config SSL actuelle
-│   └── proxy.conf
-│
-├── scripts/                            ← SCRIPTS MAINTENANCE
-│   ├── backup.sh                       ← Backup complet
-│   ├── health-check.sh                 ← Monitoring
-│   ├── deploy.sh                       ← Déploiement auto
-│   └── restore.sh                      ← Restauration
-│
-├── docs/                               ← DOCUMENTATION
-│   ├── INSTALLATION.md                 ← Installation pas-à-pas
-│   ├── DEPLOYMENT.md                   ← Guide déploiement complet
-│   ├── MAINTENANCE.md                  ← Tâches maintenance
-│   ├── TROUBLESHOOTING.md              ← Résolution problèmes
-│   └── ARCHITECTURE.md                 ← Architecture système
-│
-└── .github/workflows/                  ← CI/CD
-    └── health-check.yml                ← Check auto 6h
-```
-
----
-
-## 🚀 DÉMARRAGE RAPIDE
-
-### Pour vérifier que tout fonctionne
-```bash
-cd ~/Workspace/Flowkura/flowkura-infrastructure
-./scripts/health-check.sh
-```
-
-### Pour faire un backup
-```bash
-./scripts/backup.sh
-```
-
-### Pour redémarrer les services
-```bash
-ssh root@136.243.41.162
-cd /root/ragflow/docker
-docker compose restart
-docker compose -f docker-compose-llm.yml restart
-```
-
----
-
-## 📖 GUIDES COMPLETS
-
-### 🔧 Si vous devez TOUT RÉINSTALLER
-→ Voir [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
-
-**Temps estimé** : 45-60 minutes  
-**Difficulté** : Moyenne
-
-### 🔄 Si vous devez RESTAURER depuis backup
-→ Voir `scripts/restore.sh`
-
-**Temps estimé** : 15-20 minutes  
-**Difficulté** : Facile
-
-### 🛠️ Maintenance quotidienne/hebdomadaire
-→ Voir [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md)
-
-### 🐛 En cas de problème
-→ Voir [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
-
----
-
-## 🔑 INFORMATIONS CRITIQUES
-
-### Accès serveur
-```bash
-ssh root@136.243.41.162
-```
-
-### Mots de passe (en production)
-- **MySQL** : `infini_rag_flow` (root)
-- **MinIO** : user=`rag_flow`, pass=`infini_rag_flow`
-- **API RAGFlow** : Clé dans l'interface web
-
-### Certificats SSL
-- **Emplacement** : `/etc/letsencrypt/live/ragflow.flowkura.com/`
-- **Expire** : 22 décembre 2025
-- **Auto-renew** : Oui (cron 2x/jour)
-
-### Données importantes
-- **Base données** : Container `ragflow-mysql`
-- **Fichiers uploadés** : Container `ragflow-minio`
-- **Modèles LLM** : `/root/.cache/huggingface/`
-- **Modèles embeddings** : Volume Docker `ollama_data`
-
----
-
-## 🎯 SCÉNARIOS D'UTILISATION
-
-### Scénario 1 : Le serveur a crashé
-1. Redémarrer le serveur
-2. Vérifier : `./scripts/health-check.sh`
-3. Si erreurs → `docs/TROUBLESHOOTING.md`
-
-### Scénario 2 : Besoin de migrer vers nouveau serveur
-1. Faire backup : `./scripts/backup.sh`
-2. Sur nouveau serveur : `docs/DEPLOYMENT.md`
-3. Restaurer : `./scripts/restore.sh`
-
-### Scénario 3 : Ajouter plus de capacité
-1. Modifier `ragflow-docker/docker-compose-base.yml`
-2. Augmenter workers, RAM, etc.
-3. Redéployer : `./scripts/deploy.sh`
-
-### Scénario 4 : Mettre à jour RAGFlow
-1. Backup d'abord !
-2. Voir `docs/MAINTENANCE.md#mise-à-jour`
-
----
-
-## 📊 MONITORING
-
-### Vérifier santé système
-```bash
-./scripts/health-check.sh
-```
-
-### Voir logs
-```bash
-# RAGFlow
-ssh root@136.243.41.162 'docker logs -f --tail 100 ragflow-server'
-
-# LLM (SGLang)
-ssh root@136.243.41.162 'docker logs -f --tail 100 flowkura-sglang-qwen3'
-
-# Base de données
-ssh root@136.243.41.162 'docker logs -f --tail 100 ragflow-mysql'
-```
-
-### Vérifier utilisation GPU
-```bash
-ssh root@136.243.41.162 nvidia-smi
-```
-
-### Vérifier espace disque
-```bash
-ssh root@136.243.41.162 df -h
-```
-
----
-
-## 🆘 EN CAS D'URGENCE
-
-### Service ne répond plus
-```bash
-ssh root@136.243.41.162
-cd /root/ragflow/docker
-docker compose restart [nom-du-service]
-```
-
-### GPU saturé
-```bash
-# Redémarrer SGLang
-docker restart flowkura-sglang-qwen3
-```
-
-### Base de données corrompue
-```bash
-# Restaurer depuis backup
-./scripts/restore.sh [chemin-backup]
-```
-
-### Certificat SSL expiré
-```bash
-ssh root@136.243.41.162
-certbot renew --nginx --force-renewal
-docker exec ragflow-server nginx -s reload
-```
-
----
-
-## 📞 CONTACTS & SUPPORT
-
-- **Documentation** : Ce repository
-- **Logs** : `/var/log/` sur le serveur
-- **Backups** : `/root/backups/` sur le serveur
-
----
-
-## 🔄 MISES À JOUR
-
-### Comment mettre à jour ce repository
-
-Après avoir modifié la config en production :
+### 1. Cloner le repository
 
 ```bash
-# 1. Copier les nouveaux fichiers
-scp root@136.243.41.162:/root/ragflow/docker/[fichier] ragflow-docker/
-
-# 2. Commiter
-git add .
-git commit -m "Update: [description]"
-git push
+git clone https://github.com/Flowkura/flowkura-infrastructure.git
+cd flowkura-infrastructure
 ```
 
----
+### 2. Configurer les variables d'environnement
 
-## ⚠️ IMPORTANT
+```bash
+cp .env.example .env
+nano .env  # Remplacer your_huggingface_token_here par votre token HF
+```
 
-- ✅ Toujours faire un **backup** avant modification
-- ✅ Tester en **staging** si possible
-- ✅ Documenter les changements
-- ✅ Garder ce repository à jour
+### 3. Créer la structure de dossiers
 
----
+```bash
+mkdir -p ragflow/volumes/{ragflow,nginx}
+mkdir -p ollama
+```
 
-**Version** : 2.0 Production-Ready  
-**Date** : 19 novembre 2025  
-**Mainteneur** : Flowkura Team
+### 4. Lancer les services
+
+```bash
+docker-compose up -d
+```
+
+### 5. Télécharger le modèle d'embedding
+
+```bash
+docker exec -it ollama ollama pull bge-m3
+```
+
+## 📦 Services Déployés
+
+### RAGFlow (Port 9380, 80, 443)
+- **Image**: `infiniflow/ragflow:v0.15.0`
+- **Fonction**: Interface principale et moteur RAG
+- **Accès**: http://localhost:9380
+
+### Ollama (Port 11434)
+- **Image**: `ollama/ollama:latest`
+- **Modèle**: BGE-M3 (embedding multilingue français)
+- **Fonction**: Génération d'embeddings pour la recherche sémantique
+
+### SGLang (Port 8000)
+- **Image**: `lmsysorg/sglang:latest`
+- **Modèle**: Qwen3-8B
+- **Fonction**: Serveur LLM pour la génération de texte
+
+## ⚙️ Configuration dans RAGFlow
+
+### 1. Ajouter Ollama (Embedding)
+
+Dans RAGFlow > Settings > Model Providers:
+
+```
+Type: Ollama
+Base URL: http://ollama:11434
+Model: bge-m3
+Type: embedding
+```
+
+### 2. Ajouter SGLang (LLM)
+
+Dans RAGFlow > Settings > Model Providers:
+
+```
+Type: OpenAI-API-Compatible
+Name: VLLM
+Base URL: http://sglang:8000/v1
+API Key: EMPTY
+Model: Qwen3-8B
+Type: chat
+Max Tokens: 8192
+```
+
+### 3. Configurer vos Datasets
+
+Pour chaque dataset:
+1. Aller dans Knowledge Base > Votre Dataset > Settings
+2. Embedding Model: `bge-m3@Ollama`
+3. Chunk Method: `naive` (General)
+4. Chunk Token Count: `512` (ou selon vos besoins)
+
+## 🔧 Commandes Utiles
+
+### Vérifier les logs
+```bash
+docker-compose logs -f ragflow    # Logs RAGFlow
+docker-compose logs -f ollama     # Logs Ollama
+docker-compose logs -f sglang     # Logs SGLang
+```
+
+### Redémarrer un service
+```bash
+docker-compose restart ragflow
+docker-compose restart ollama
+docker-compose restart sglang
+```
+
+### Arrêter tous les services
+```bash
+docker-compose down
+```
+
+### Supprimer tout (⚠️ ATTENTION: supprime les données)
+```bash
+docker-compose down -v
+```
+
+### Vérifier le modèle Ollama
+```bash
+docker exec -it ollama ollama list
+```
+
+### Tester l'embedding Ollama
+```bash
+curl http://localhost:11434/api/embeddings \
+  -d '{"model": "bge-m3", "prompt": "Bonjour le monde"}'
+```
+
+### Tester SGLang
+```bash
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen3-8B",
+    "messages": [{"role": "user", "content": "Bonjour!"}],
+    "max_tokens": 100
+  }'
+```
+
+## 📊 Optimisations Appliquées
+
+### Base de données (Redis + MySQL + Elasticsearch)
+- Configuration optimisée pour GPU
+- Augmentation des buffers et cache
+- Pooling optimisé
+
+### RAGFlow
+- GPU activé (`CPUONLY=0`)
+- Max tokens augmenté (8192)
+- Registration désactivée
+
+### SGLang
+- `mem-fraction-static 0.85` : Utilisation optimale de la VRAM
+- `trust-remote-code` : Support complet de Qwen3
+
+## 🔐 Sécurité
+
+- Le `.env` est dans `.gitignore` (ne jamais commit les tokens)
+- Utilisez `.env.example` comme template
+- Changez les ports si nécessaire pour votre infrastructure
+
+## 🐛 Troubleshooting
+
+### RAGFlow ne démarre pas
+```bash
+docker-compose logs ragflow
+# Vérifier que le GPU est bien détecté
+docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
+```
+
+### Ollama ne télécharge pas le modèle
+```bash
+# Vérifier l'espace disque
+df -h
+# Télécharger manuellement
+docker exec -it ollama ollama pull bge-m3
+```
+
+### SGLang out of memory
+```bash
+# Réduire mem-fraction-static dans docker-compose.yml
+# De 0.85 à 0.7 par exemple
+```
+
+## 📈 Performance
+
+- **Parsing**: ~500-1000 documents/heure (selon complexité)
+- **Embedding**: ~100 chunks/seconde
+- **Génération**: ~20-30 tokens/seconde
+
+## 🆘 Support
+
+- GitHub Issues: [https://github.com/Flowkura/flowkura-infrastructure/issues](https://github.com/Flowkura/flowkura-infrastructure/issues)
+- Documentation RAGFlow: [https://ragflow.io/docs](https://ragflow.io/docs)
+
+## 📝 License
+
+MIT
