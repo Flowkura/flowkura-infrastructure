@@ -1,0 +1,27 @@
+# Backups (ne pas commiter les vrais backups)
+backups/*.tar.gz
+backups/*.sql
+backups/*/
+
+# Cache local
+.cache/
+__pycache__/
+*.pyc
+
+# Environnement
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
