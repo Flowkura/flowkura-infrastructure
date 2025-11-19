@@ -65,14 +65,25 @@ services:
               device_ids: ['0']
               capabilities: [gpu]
 
-  # Ollama - BGE-M3 (Embedding)
-  ollama:
-    image: ollama/ollama:latest
-    container_name: flowkura-ollama
+  # SGLang - BGE-M3 (Embedding)
+  sglang-embedding:
+    image: lmsysorg/sglang:latest
+    container_name: flowkura-sglang-embedding
+    command: >
+      python3 -m sglang.launch_server
+      --model BAAI/bge-m3
+      --host 0.0.0.0
+      --port 30001
+      --tp 1
+      --mem-fraction-static 0.3
+      --is-embedding
     volumes:
-      - ollama-data:/root/.ollama
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - HF_TOKEN=${HF_TOKEN}
     ports:
-      - "11434:11434"
+      - "30001:30001"
     networks:
       - ragflow
     restart: unless-stopped
@@ -83,7 +94,3 @@ services:
             - driver: nvidia
               device_ids: ['0']
               capabilities: [gpu]
-
-volumes:
-  ollama-data:
-    driver: local
